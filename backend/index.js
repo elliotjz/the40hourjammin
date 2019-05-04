@@ -1,4 +1,6 @@
 import express from 'express'
+import cors from 'cors'
+
 import { runCron } from './lib/scraper'
 import './lib/cron' // runs cron tasks
 import mongoose from 'mongoose'
@@ -14,6 +16,7 @@ try {
 }
 
 const app = express()
+app.use(cors())
 
 // Connect to mongodb
 const uri = production ? process.env.mongodbURI : keys.mongodb.dbURI
@@ -29,5 +32,21 @@ app.get('/scrape', async (req, res, next) => {
   res.json({ success: true })
 })
 
+app.get('/data', async (req, res, next) => {
+  // get the scrape data
+  Donations.findOne(
+    { id: "1" },
+    (err, donations) => {
+      if (err) {
+        res.json({ error: err })
+      } else {
+        res.json(donations)
+      }
+    }
+  )
+
+  // respond with json
+})
+
 const port = 8090
-app.listen(port, () => console.log(`40 Hour Jammin Scraper running on ${port}`))
+app.listen(port, () => console.log(`40 Hour Jammin Scraper running on http://localhost:${port}`))

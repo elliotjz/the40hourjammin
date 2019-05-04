@@ -41,8 +41,10 @@ async function runCron() {
   ]
   console.log('Scraping');
   const data = await scrapeURLs(urls)
-  const snapshot = {}
-  snapshot[Date.now()] = data
+  const snapshot = {
+    date: Date.now(),
+    people: data,
+  }
   // console.log(snapshot)
   Donations.findOneAndUpdate(
     { id: "1" },
