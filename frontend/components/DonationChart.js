@@ -6,7 +6,7 @@ import { distanceInWordsStrict } from 'date-fns'
 import Typography from '@material-ui/core/Typography'
 import { Button, CircularProgress } from '@material-ui/core'
 
-import { colors } from '../helpers'
+import { colors, comparePlayerScores } from '../helpers'
 import Chips from './Chips'
 
 const styles = theme => ({
@@ -35,7 +35,7 @@ const chartOptions = {
   curveType: 'none',
   legend: 'none',
   colors,
-  chartArea: { width: '85%', height: '80%' },
+  chartArea: { width: '85%', height: '70%' },
 }
 
 const chartDomains = ['All', 400, 100, 50]
@@ -53,9 +53,9 @@ class DonationChart extends Component {
   }
 
   componentDidMount() {
-    const { donationData } = this.props
+    const { donationData, names } = this.props
     
-    const donorAmounts =  this.getDonorAmounts(donationData)
+    const donorAmounts =  this.getMostRecentAmounts(donationData, names)
     const excludedPeople = donorAmounts.slice(10).map(player => player[0])
     const parsedDonations = this.parseDonations(null, donorAmounts, excludedPeople)
     const totalDonated = donorAmounts.reduce((acc, donor) => acc + donor[1], 0)
@@ -67,12 +67,20 @@ class DonationChart extends Component {
     })
   }
 
-  getDonorAmounts(donationData) {
-    const latestData = donationData[donationData.length - 1]
-    const donorAmounts = latestData.people.map(person => (
-      [person.name, person.amount]
-    ))
-    return donorAmounts
+  getMostRecentAmounts(donationData, names) {
+    const donorAmounts = names.map(name => {
+      let person
+      let i = donationData.length - 1
+      while (!person && i > 0) {
+        person = donationData[i].people.find(el => el.name === name)
+        i--
+      }
+      console.log([name, person.amount]);
+      return [name, person.amount]
+    })
+    let sorted = donorAmounts.sort(comparePlayerScores)
+    console.log(sorted);
+    return sorted
   }
 
   onChipClick = name => {
@@ -196,7 +204,7 @@ class DonationChart extends Component {
         <Typography variant="h4" className={classes.title}>
           Total Donated - ${totalDonated}
         </Typography>
-        {parsedData !== undefined && parsedData.length > 2 ? (
+        {parsedData !== undefined && parsedData.length > 1 ? (
           <div className={classes.root}>
             <Chips
               donorAmounts={donorAmounts}

@@ -60,7 +60,7 @@ class Chips extends Component {
           const color = excludedPeople.includes(player[0])
             ? '#bbb'
             : colors[index]
-          const [name, score ] = player
+          const [name, score] = player
           const truncatedName = truncateName(name, 15)
 
           return (

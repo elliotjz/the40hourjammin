@@ -3,8 +3,8 @@ import cheerio from 'cheerio'
 
 const Donations = require('../models/donations-model')
 
-async function scrapeURLs(urls) {
-  const htmlArray = await Promise.all(urls.map(url => getHTML(url)))
+async function scrapeFacebook(pages) {
+  const htmlArray = await Promise.all(pages.map(page => getHTML(page.url)))
   const donations = await Promise.all(htmlArray.map(html => getCurrentDonation(html)))
   return donations
 }
@@ -15,40 +15,81 @@ async function getHTML(url) {
 }
 
 async function getCurrentDonation(html) {
-  const $ = cheerio.load(html)
-  const donationSpan = $('#progress_card ._1r05').html()
-  const spanArr = donationSpan.split(";")
-  const amountStr = spanArr[0].split('&')[0].substring(1)
-  const amount = parseInt(amountStr.replace(',', ''))
+  try {
+    const $ = cheerio.load(html)
+    // Find donation progress card
+    const donationSpan1 = $('#progress_card ._1r05').html()
 
-  const targetStr = spanArr[1].split('&')[0].split('$')[1]
-  const target = parseInt(targetStr.replace(',', ''))
+    // Fundraisers that are over have a different class name
+    const donationSpan2 = $('#progress_card ._1r08').html()
+    const donationSpan = donationSpan1 || donationSpan2
 
-  const personSpan = $('._6a ._21f9._50f4._50f7 span').html()
-  const personA = $('._6a ._21f9._50f4._50f7 a').html()
-  const name = personSpan || personA
+    const spanArr = donationSpan.split(";")
+    const amountStr = spanArr[0].split('&')[0].substring(1)
+    const amount = parseInt(amountStr.replace(',', ''))
 
-  return { name, amount, target }
+    const targetStr = spanArr[1].split('&')[0].split('$')[1]
+    const target = parseInt(targetStr.replace(',', ''))
+
+    return { amount, target }
+  } catch (err) {
+    console.log('Error getting data from facebook pages.');
+    console.log(err);
+    return null
+  }
+}
+
+async function scrape40hour() {
+  try {
+    const { data } = await axios.get("https://www.the40hourjammin.com/artists")
+    const $ = cheerio.load(data)
+    const artistH3s = $('#comp-jsfy9kn4 h3 a')
+    let pages = []
+    artistH3s.each((i, el) => {
+      let span = $('span', el)
+      while ($('span', span).length) {
+        span = $('span', span)
+      }
+      const name = span.text()
+      pages.push({ name, url: el.attribs.href })
+    })
+    return pages
+  } catch(err) {
+    console.log("Error scraping the 40 hour jammin.");
+    console.log(err);
+    return []
+  }
 }
 
 async function runCron() {
-  const urls = [
-    "https://www.facebook.com/donate/820981641616511/839063936474948/",
-    "https://www.facebook.com/donate/2293945470665340/2353830568001982/",
-    "https://www.facebook.com/donate/382532248999297/",
-    "https://www.facebook.com/donate/352510015374579/2356379434413762/",
-    "https://www.facebook.com/donate/639682573146887/593246097853739/"
-  ]
   console.log('Scraping');
-  const data = await scrapeURLs(urls)
+
+  // Get URLs from the40hourjammin.com
+  const pages = await scrape40hour()
+  console.log(`Found ${pages.length} donation pages to scrape.`);
+
+  // Get data from donation pages
+  const data = await scrapeFacebook(pages)
+  const filteredData = []
+  const names = []
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] !== null) {
+      filteredData.push({ ...data[i], name: pages[i].name })
+      names.push(pages[i].name)
+    }
+  }
+
   const snapshot = {
     date: Date.now(),
-    people: data,
+    people: filteredData,
   }
-  // console.log(snapshot)
+
   Donations.findOneAndUpdate(
     { id: "1" },
-    { $push: { donations: snapshot }},
+    {
+      $push: { donations: snapshot },
+      $addToSet: { names: names }
+    },
     { new: true },
     (err, donations) => {
       if (err) {
@@ -60,4 +101,4 @@ async function runCron() {
   )
 }
 
-export { getHTML, getCurrentDonation, scrapeURLs, runCron }
+export { getHTML, getCurrentDonation, scrapeFacebook, runCron }

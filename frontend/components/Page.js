@@ -3,25 +3,29 @@ import { ScrapeProvider } from './ScrapeContext'
 
 // Custom Hook
 function useScrapes() {
+  // Initial State inside hook
   const [scrapes, setScrapes] = useState({})
 
-  useEffect(function() {
-    (async () => {
-      console.log("Mounting or updating");
-      const res = await fetch('http://localhost:8090/data')
-      const data = await res.json()
-      setScrapes(data)
-    })();
+  // Fetch Function
+  async function fetchScrapes() {
+    console.log("fetching...");
+    const res = await fetch('http://localhost:8090/data')
+    const data = await res.json()
+    console.log("done");
+    setScrapes(data)
+  }
+
+  // Did Mount / did Update
+  useEffect(() => {
+    fetchScrapes()
   }, [])
-  return scrapes
+  return { scrapes, fetchScrapes }
 }
 
 export default function Page({ children }) {
-  const scrapes = useScrapes()
+  const hookInfo = useScrapes()
   return (
-    <ScrapeProvider value={{
-      scrapes,
-    }}>
+    <ScrapeProvider value={hookInfo}>
       <div className="page">{children}</div>
     </ScrapeProvider>
   )

@@ -3,6 +3,7 @@ const Schema = mongoose.Schema
 
 const donationsSchema = new Schema({
   id: String,
+  names: Array,
   donations: Array,
 })
 
