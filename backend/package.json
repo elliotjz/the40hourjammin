@@ -1,0 +1,19 @@
+{
+  "name": "40hour",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node -r esm index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.3",
+    "esm": "^3.2.22",
+    "express": "^4.16.4",
+    "mongoose": "^5.5.5",
+    "node-cron": "^2.0.3"
+  }
+}
