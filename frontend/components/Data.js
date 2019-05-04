@@ -1,20 +1,16 @@
 import { useContext } from 'react'
 
 import { ScrapeContext } from './ScrapeContext'
+import DonationChart from './DonationChart';
 
 export default function Data() {
   const { scrapes } = useContext(ScrapeContext)
-  console.log(scrapes);
+  const donationData = scrapes ? scrapes.donations : null
   return (
     <div>
-      <h2>Your Data:</h2>
-      {scrapes.donations && (
-        <div>
-          {scrapes.donations.map((scrape, i) => (
-            <p key={i}>{scrape.date}: {scrape.people.length}</p>
-          ))}
-        </div>
-      )}
+      {donationData ?
+        <DonationChart donationData={donationData} /> :
+        <p>Loading...</p>}
     </div>
   )
 }

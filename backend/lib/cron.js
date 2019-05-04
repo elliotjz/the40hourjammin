@@ -3,5 +3,5 @@ import { runCron } from './scraper'
 
 cron.schedule('* * * * *', () => {
   console.log("💀 Running the cron.");
-  runCron()
+  // runCron()
 })

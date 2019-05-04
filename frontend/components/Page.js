@@ -10,7 +10,6 @@ function useScrapes() {
       console.log("Mounting or updating");
       const res = await fetch('http://localhost:8090/data')
       const data = await res.json()
-      console.log(data);
       setScrapes(data)
     })();
   }, [])
