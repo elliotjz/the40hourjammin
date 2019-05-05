@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next"
+    "start": "next start"
   },
   "author": "",
   "license": "ISC",
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@material-ui/core": "^3.9.3",
     "date-fns": "^1.30.1",

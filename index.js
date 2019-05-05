@@ -28,12 +28,12 @@ mongoose.set('useFindAndModify', false);
 
 const Donations = require('./models/donations-model')
 
-app.get('/scrape', async (req, res, next) => {
+app.get('/api/scrape', async (req, res, next) => {
   runCron()
   res.json({ success: true })
 })
 
-app.get('/data', async (req, res, next) => {
+app.get('/api/data', async (req, res, next) => {
   // get the scrape data
   Donations.findOne(
     { id: "1" },
@@ -47,5 +47,5 @@ app.get('/data', async (req, res, next) => {
   )
 })
 
-const port = 8090
+const port = 5000
 app.listen(port, () => console.log(`40 Hour Jammin Scraper running on http://localhost:${port}`))
