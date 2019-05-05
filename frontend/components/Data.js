@@ -7,6 +7,8 @@ export default function Data() {
   const { scrapes, fetchScrapes } = useContext(ScrapeContext)
   const donationData = scrapes ? scrapes.donations : null
   const names = scrapes ? scrapes.names : null
+
+  if (donationData) console.log(`updating... length = ${donationData.length || ''}`);
   return (
     <div>
       {donationData ?

@@ -38,13 +38,20 @@ const chartOptions = {
   chartArea: { width: '85%', height: '70%' },
 }
 
-const chartDomains = ['All', 400, 100, 50]
+// 6 hours, 3 hours, 1 hours, 15 minutes, 1 minute
+const chartDomains = [
+  { text: '2 Weeks', samplesInDomain: 56, interval: 1000 * 60 * 60 * 6 },
+  { text: '1 week', samplesInDomain: 56, interval: 1000 * 60 * 60 * 3 },
+  { text: '3 days', samplesInDomain: 72, interval: 1000 * 60 * 60 },
+  { text: '1 day', samplesInDomain: 96, interval: 1000 * 60 * 15 },
+  { text: '1 hour', samplesInDomain: 60, interval: 1000 * 60 * 1 },
+]
 
 class DonationChart extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      chartDomainIndex: 2,
+      chartDomainIndex: 4,
       donorAmounts: [],
       excludedPeople: [],
       parsedDonations: null,
@@ -75,11 +82,9 @@ class DonationChart extends Component {
         person = donationData[i].people.find(el => el.name === name)
         i--
       }
-      console.log([name, person.amount]);
       return [name, person.amount]
     })
     let sorted = donorAmounts.sort(comparePlayerScores)
-    console.log(sorted);
     return sorted
   }
 
@@ -120,9 +125,10 @@ class DonationChart extends Component {
   }
 
   parseDonations(chartDomainIndexParam, donorAmountsParam, excludedPeopleParam) {
+    console.log('parsing donations');
     const { donationData } = this.props
 
-    // Get the domain for the chart
+    // Get the domain index
     const chartDomainIndex =
       chartDomainIndexParam === null || chartDomainIndexParam === undefined
         ? this.state.chartDomainIndex
@@ -134,43 +140,59 @@ class DonationChart extends Component {
     const colorsToRemove = []
 
     if (donationData && donationData.length !== 0) {
-      const parsedData = [['Race']]
+      const parsedData = [['Date']]
 
-      // Find the domain of the chart
-      let startIndex = 0
-      const chartDomain = chartDomains[chartDomainIndex]
-      if (chartDomainIndex !== 0 && chartDomain < donationData.raceCounter) {
-        startIndex = donationData.raceCounter - chartDomain
-      }
-
-      // Add a column for each race
-      for (let i = startIndex; i < donationData.length; i++) {
-        parsedData.push([distanceInWordsStrict(
-          new Date(donationData[i].date), new Date()
-          ) + " ago"])
-      }
-
-      // Add scores for each donor
+      // Add the names of the people
+      const people = []
       donorAmounts.forEach((donor, i) => {
         const name = donor[0]
         // exclude excluded players
         if (!excludedPeople.includes(name)) {
           // Append Name
-          parsedData[0].push(donor[0])
-
-          // Append Scores
-          let lastAmount = this.getCurrentAmount(name, donationData, startIndex)
-          for (let j = 0; j < donationData.length; j++) {
-            const donorInfo = donationData[j].people.find(el => el.name == name)
-            if (donorInfo) {
-              lastAmount = donorInfo.amount
-            }
-            parsedData[j + 1].push(lastAmount)
-          }
+          people.push(donor[0])
         } else {
           colorsToRemove.push(i)
         }
       })
+      parsedData[0].push(...people)
+
+      // Get the interval for the chart
+      const { interval, samplesInDomain } = chartDomains[chartDomainIndex]
+      const starTimestamp = Date.now() - interval * samplesInDomain
+
+      // Add a row for each interval
+      let scrapeIterator = 0
+      for (let timestamp = starTimestamp; timestamp <= Date.now(); timestamp += interval) {
+        const xLabel = distanceInWordsStrict(new Date(timestamp), new Date()) + " ago"
+
+        // Find a scrape for this timestamp
+        let scrape = donationData[scrapeIterator]
+        while (scrape.date < timestamp && scrapeIterator < donationData.length - 1) {
+          scrapeIterator += 1
+          scrape = donationData[scrapeIterator]
+        }
+        if (scrape.date > timestamp + interval) {
+          // Scrape is too new
+          if (parsedData.length === 1) {
+            // Records don't go back this far, so push an undefined row
+            parsedData.push([xLabel, ...people.map(el => undefined)])
+          } else {
+            // Append the data from the previous interval
+            const prevRow = parsedData[parsedData.length - 1]
+            parsedData.push([xLabel, ...prevRow.slice(1)])
+          }
+        } else {
+          // Get each person's amount from scrape
+          const amounts = people.map((name, i) => {
+            const person = scrape.people.find(el => el.name === name)
+            const amount = person ? person.amount : parsedData[parsedData.length - 1][i + 1]
+            return amount
+          })
+
+          parsedData.push([xLabel, ...amounts])
+        }
+      }
+
       for (let i = colorsToRemove.length - 1; i >= 0; i--) {
         parsedColors.splice(colorsToRemove[i], 1)
       }
@@ -179,6 +201,7 @@ class DonationChart extends Component {
   }
 
   render() {
+    console.log('rendering');
     const { classes } = this.props
     const {
       chartDomainIndex,
@@ -195,7 +218,10 @@ class DonationChart extends Component {
       parsedColors = parsedDonations[1]
     }
     chartOptions.colors = parsedColors
-
+    if (parsedData) {
+      console.log(`parsedData length = ${parsedData.length}`);
+      console.log(`props data length = ${this.props.donationData.length}`);
+    }
     return (
       <div className={classes.container}>
         <Typography variant="h4" className={classes.title}>
@@ -237,7 +263,7 @@ class DonationChart extends Component {
                   variant={chartDomainIndex === index ? 'outlined' : 'text'}
                   onClick={() => this.changeDomain(index)}
                 >
-                  {domain}
+                  {domain.text}
                 </Button>
               ))}
             </div>

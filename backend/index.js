@@ -1,9 +1,11 @@
 import express from 'express'
 import cors from 'cors'
+import mongoose from 'mongoose'
 
 import { runCron } from './lib/scraper'
 import './lib/cron' // runs cron tasks
-import mongoose from 'mongoose'
+import { aggregate } from './lib/aggregate'
+
 
 // Get app secrets
 let keys
@@ -44,8 +46,6 @@ app.get('/data', async (req, res, next) => {
       }
     }
   )
-
-  // respond with json
 })
 
 const port = 8090
