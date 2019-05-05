@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node -r esm index.js"
+    "dev": "node -r esm index.js",
+    "start": "node index.js",
+    "heroku-postbuild": "cd frontend && yarn && yarn run build"
   },
   "author": "",
   "license": "ISC",
