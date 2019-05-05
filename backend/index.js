@@ -4,7 +4,6 @@ import mongoose from 'mongoose'
 
 import { runCron } from './lib/scraper'
 import './lib/cron' // runs cron tasks
-import { aggregate } from './lib/aggregate'
 
 
 // Get app secrets

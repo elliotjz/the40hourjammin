@@ -64,10 +64,8 @@ class DonationChart extends Component {
     
     const donorAmounts =  this.getMostRecentAmounts(donationData, names)
     const excludedPeople = donorAmounts.slice(10).map(player => player[0])
-    const parsedDonations = this.parseDonations(null, donorAmounts, excludedPeople)
     const totalDonated = donorAmounts.reduce((acc, donor) => acc + donor[1], 0)
     this.setState({
-      parsedDonations,
       donorAmounts,
       excludedPeople,
       totalDonated,
@@ -96,9 +94,7 @@ class DonationChart extends Component {
     } else {
       excludedPeople.push(name)
     }
-    const parsedDonations = this.parseDonations(null, null, excludedPeople)
     this.setState({
-      parsedDonations,
       excludedPeople,
     })
   }
@@ -117,17 +113,12 @@ class DonationChart extends Component {
   }
 
   changeDomain = index => {
-    const parsedDonations = this.parseDonations(index, null, null)
     this.setState({
-      parsedDonations,
       chartDomainIndex: index,
     })
   }
 
-  parseDonations(chartDomainIndexParam, donorAmountsParam, excludedPeopleParam) {
-    console.log('parsing donations');
-    const { donationData } = this.props
-
+  parseDonations(donationData, chartDomainIndexParam, donorAmountsParam, excludedPeopleParam) {
     // Get the domain index
     const chartDomainIndex =
       chartDomainIndexParam === null || chartDomainIndexParam === undefined
@@ -162,20 +153,35 @@ class DonationChart extends Component {
 
       // Add a row for each interval
       let scrapeIterator = 0
+      let scrape
+      let prevScrape
       for (let timestamp = starTimestamp; timestamp <= Date.now(); timestamp += interval) {
         const xLabel = distanceInWordsStrict(new Date(timestamp), new Date()) + " ago"
 
         // Find a scrape for this timestamp
-        let scrape = donationData[scrapeIterator]
+        scrape = donationData[scrapeIterator]
         while (scrape.date < timestamp && scrapeIterator < donationData.length - 1) {
           scrapeIterator += 1
+          prevScrape = scrape
           scrape = donationData[scrapeIterator]
         }
         if (scrape.date > timestamp + interval) {
           // Scrape is too new
           if (parsedData.length === 1) {
-            // Records don't go back this far, so push an undefined row
-            parsedData.push([xLabel, ...people.map(el => undefined)])
+            // No data added yet
+            if (!prevScrape) {
+              // Records don't go back this far, so push an undefined row
+              parsedData.push([xLabel, ...people.map(el => undefined)])
+            } else {
+              // Use the previous scrape as a starting point
+              const amounts = people.map((name, i) => {
+                const person = scrape.people.find(el => el.name === name)
+                const amount = person ? person.amount : parsedData[parsedData.length - 1][i + 1]
+                return amount
+              })
+
+              parsedData.push([xLabel, ...amounts])
+            }
           } else {
             // Append the data from the previous interval
             const prevRow = parsedData[parsedData.length - 1]
@@ -201,16 +207,15 @@ class DonationChart extends Component {
   }
 
   render() {
-    console.log('rendering');
-    const { classes } = this.props
+    const { classes, donationData } = this.props
     const {
       chartDomainIndex,
-      parsedDonations,
       donorAmounts,
       excludedPeople,
       totalDonated
     } = this.state
 
+    const parsedDonations = this.parseDonations(donationData, chartDomainIndex, donorAmounts, excludedPeople)
     let parsedData
     let parsedColors
     if (parsedDonations) {
@@ -218,10 +223,9 @@ class DonationChart extends Component {
       parsedColors = parsedDonations[1]
     }
     chartOptions.colors = parsedColors
-    if (parsedData) {
-      console.log(`parsedData length = ${parsedData.length}`);
-      console.log(`props data length = ${this.props.donationData.length}`);
-    }
+    /* if (donationData) {
+      console.log(`donationData length = ${donationData.length}`);
+    } */
     return (
       <div className={classes.container}>
         <Typography variant="h4" className={classes.title}>
